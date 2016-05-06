@@ -1,6 +1,6 @@
 import argparse, socket, time, memcache
 
-def verify():
+def v_request():
     uname = input('usernmae:')
     passwd = input('password:')
     acc = uname + ":" + passwd

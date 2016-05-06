@@ -9,17 +9,18 @@ def start_threads(listener, workers=4):
         #call client_utils.accept_connections_forever(listener)
 
 
-def client(address, cause_error=False):
-    uname = input('usernmae:')
-    passwd = input('password:')
-    acc = uname + ":" + passwd
+# def client(address, cause_error=False):
+#     uname = input('usernmae:')
+#     passwd = input('password:')
+#     acc = uname + ":" + passwd
 
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.connect(address)
-    sock.sendall(acc.encode())
-    sock.close()
+#     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+#     sock.connect(address)
+#     sock.sendall(acc.encode())
+#     sock.close()
 
 if __name__ == '__main__':
     address = client_utils.parse_command_line('chatting room client')
-    listener = client_utils.verify()
+    acc = client_utils.v_request()
+    listener = client_utils.create_srv_socket(address)
     start_threads(listener)
