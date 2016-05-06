@@ -70,7 +70,7 @@ def v_response(message,sock):
         print('user: %s login!!' % uname)
         sock.sendall(b'success')
         mc.set('alive:1','online')
-    else if(mc.get('uname:2')==uname and mc.get('passwd:2')==passwd):
+    elif(mc.get('uname:2')==uname and mc.get('passwd:2')==passwd):
         print('user: %s login!!' % uname)
         sock.sendall(b'success')
         mc.set('alive:2','online')
