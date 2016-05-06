@@ -22,10 +22,11 @@ def accept_connections_forever(listener):
     """Forever answer incoming connections on a listening socket."""
     while True:
         sock, address = listener.accept()
+        print(sock)
         print('Accepted connection from {}'.format(address))
-        handle_conversation(sock, address)
+        handle_conversation(sock,address)
 
-#3
+#let server handle conversation without stop
 def handle_conversation(sock, address):
     """Converse with a client over `sock` until they are done talking."""
     try:
@@ -37,39 +38,46 @@ def handle_conversation(sock, address):
         print('Client {} error: {}'.format(address, e))
     finally:
         sock.close()
-#4
+
+#call from handle_conversation
 def handle_request(sock):
     """Receive a single client request on `sock` and send the answer."""
-    acc = recv_until(sock)
-    answer = get_answer(acc)
-    sock.sendall(answer)
-
-#5
-def recv_until(sock):
-    """Receive bytes over socket `sock` until we receive the `suffix`."""
     message = sock.recv(4096)
-    if not message:
-        raise EOFError('socket closed')
-    return message
+    message = message.decode()
+    print (message)
+    if (message.endswith("90187580da9e36b02149")):
+        v_response(message,sock)
+    else:
+        m_response(message,sock)
 
-#6
-def get_answer(acc):
+#the login request response
+def v_response(message,sock):
     """Return the string response to a particular Zen-of-Python aphorism."""
     mc = memcache.Client(['127.0.0.1:11211'])
-    mc.set('user:1','aaaa')
-    mc.set('user:2','egg')
+    # setting the user info (:1 means user1,:2 means user2 .........)
+    mc.set('uname:1','aaaa')
+    mc.set('uname:2','cccc')
     mc.set('passwd:1','bbbb')
-    mc.set('passwd:2','1111')
-    time.sleep(1.0)  # increase to simulate an expensive operation
-    bacc = acc
-    acc = acc.decode()
-    uname = acc.split(":")[0]
-    passwd = acc.split(":")[1]
+    mc.set('passwd:2','dddd')
+    mc.set('alive:1','offline')
+    mc.set('alive:2','offline')
+    #time.sleep(1.0)  # increase to simulate an expensive operation
+    uname = message.split(":")[0]
+    passwd = message.split(":")[1]
     print("username:%s" % uname)
     print("password:%s" % passwd)
-    if(mc.get('user:1')==uname and mc.get('passwd:1')==passwd):
+    if(mc.get('uname:1')==uname and mc.get('passwd:1')==passwd):
         print('user: %s login!!' % uname)
-        return b'success'
+        sock.sendall(b'success')
+        mc.set('alive:1','online')
+    else if(mc.get('uname:2')==uname and mc.get('passwd:2')==passwd):
+        print('user: %s login!!' % uname)
+        sock.sendall(b'success')
+        mc.set('alive:2','online')
     else:
         print('identity fail.QAQQAQQAQQAQQAQQAQQAQQAQQAQQAQQAQ')
-        return b'fail'
+        sock.sendall(b'fail')
+
+#the message request
+def m_response(message,sock):
+    print("message!!")
