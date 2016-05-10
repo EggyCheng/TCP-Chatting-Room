@@ -1,6 +1,5 @@
 import argparse, socket, time, memcache
 
-
 def parse_command_line(description):
     """Parse command line and return a socket address."""
     parser = argparse.ArgumentParser(description=description)
@@ -10,7 +9,6 @@ def parse_command_line(description):
     address = ('127.0.0.1', args.p)
     return address
 
-#send verfication request to server port: 1060
 def v_request():
     uname = input('usernmae:')
     passwd = input('password:')
@@ -22,20 +20,48 @@ def v_request():
     reply = sock.recv(4096)
     print('The server said', reply)
     if (reply.decode()=="success"):
-        return sock
+        return sock,uname
     else:
         print ("login fail")
         sock.close()
 
-def accept_connections_forever(sock):
+def accept_connections_forever(sock,uname):
     """Forever answer incoming connections on a listening socket."""
-    #print("communication start!")
+    while True:
+        reply = sock.recv(4096)
+        print('The server said', reply.decode())
+        print()
+        if(reply.decode()=="bye"):
+            print ("bye~bye~")
+            break
+            sock.close()
+            #self.exit.set()
+            return 20
+            
 
-
-def typecmd(sock):
-        while True:
-            text = input("Me:")
-            sock.sendall(text.encode())
+def typecmd(sock,uname):
+    while True:
+        text = input("Me:")
+        if(text=="friendlist"):
+            token = "e0df606e8d8371318a75";
+            text = uname + ":" +text + ":" + token;
+        if(text.startswith("friendadd")):
+            token = "9b5ee10b35dc972542e8";
+            fname = text.split(" ")[1]
+            text = uname + ":" +text + ":" + token;
+        if(text.startswith("frienddel")):
+            token = "7dd14502ccbdc835ed86";
+            fname = text.split(" ")[1]
+            text = uname + ":" +text + ":" + token;
+        if(text.startswith("send")):
+            token = "bd785c92b41f71e7c49b";
+            recname = text.split(" ")[1]
+            mess = text.split(" ")[2]
+            text = uname + ":" + recname + ":" + mess + ":" + token
+        if(text=="exit"):
+            token = "c17761a60bf2277982bd";
+            text = uname + ":" +text + ":" + token;
+        sock.sendall(text.encode())
 
 
 # #1
