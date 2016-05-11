@@ -80,9 +80,9 @@ def v_response(message,sock):
     print("username:%s" % uname)
     print("password:%s" % passwd)
     if(mc.get('aaaa')[0]==uname and mc.get('aaaa')[1]==passwd):
-        print("======================")
-        print('user: %s login!! sock number is :' % (uname,sock.fileno()))
-        print("======================")
+        print("======================================")
+        print('user: %s login!! sock number is : %d' % (uname,sock.fileno()))
+        print("======================================")
         loginmes = "success"
         sock.sendall(loginmes.encode())
         userinfo = mc.get('aaaa')
