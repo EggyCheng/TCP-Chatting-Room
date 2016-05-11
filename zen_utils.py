@@ -1,6 +1,8 @@
 import argparse, socket, time, memcache
 
 socklist = dict()
+talkcount = 0
+talklist = dict()
 #0
 def parse_command_line(description):
     """Parse command line and return a socket address."""
@@ -43,46 +45,56 @@ def handle_conversation(sock, address):
 #call from handle_conversation
 def handle_request(sock):
     """Receive a single client request on `sock` and send the answer."""
+    talklist = list()
     message = sock.recv(4096)
     message = message.decode()
-    if (message.endswith("90187580da9e36b02149")):
-        v_response(message,sock)
-    elif (message.endswith("e0df606e8d8371318a75")):
-        friendlist_response(message,sock)
-    elif (message.endswith("c17761a60bf2277982bd")):
-        close_response(message,sock)
-    elif (message.endswith("9b5ee10b35dc972542e8")):
-        friendadd_response(message,sock)
-    elif (message.endswith("7dd14502ccbdc835ed86")):
-        frienddel_response(message,sock)
-    elif (message.endswith("bd785c92b41f71e7c49b")):
-        sendto_other(message,sock)
+    if (talkcount == 2):  # start talk statement
+        talkto_start(message,sock)
     else:
-        m_response(message,sock)
+        if (message.endswith("90187580da9e36b02149")):
+            v_response(message,sock)
+        elif (message.endswith("e0df606e8d8371318a75")):
+            friendlist_response(message,sock)
+        elif (message.endswith("c17761a60bf2277982bd")):
+            close_response(message,sock)
+        elif (message.endswith("9b5ee10b35dc972542e8")):
+            friendadd_response(message,sock)
+        elif (message.endswith("7dd14502ccbdc835ed86")):
+            frienddel_response(message,sock)
+        elif (message.endswith("bd785c92b41f71e7c49b")):
+            sendto_other(message,sock)
+        elif (message.endswith("73556db3b27ba48e180a")):
+            talkto_request(message,sock)
+        else:
+            m_response(message,sock)
 
 #the login request response
 def v_response(message,sock):
     """Return the string response to a particular Zen-of-Python aphorism."""
     mc = memcache.Client(['127.0.0.1:11211'])
     global socklist
-    uname = message.split(":")[0]
-    passwd = message.split(":")[1]
+    uname = message.split(";")[0]
+    passwd = message.split(";")[1]
     print("username:%s" % uname)
     print("password:%s" % passwd)
     if(mc.get('aaaa')[0]==uname and mc.get('aaaa')[1]==passwd):
-        print('user: %s login!!' % uname)
-        print("=================")
-        print(sock.fileno())
-        print("=================")
-        sock.sendall(b'success')
+        print("======================")
+        print('user: %s login!! sock number is :' % (uname,sock.fileno()))
+        print("======================")
+        loginmes = "login success"
+        sock.sendall(loginmes.encode())
         userinfo = mc.get('aaaa')
         userinfo[2] = "online"
         userinfo[4] = sock.fileno()
         socklist.setdefault(sock.fileno(),sock)
         mc.set('aaaa',userinfo)
+        
     elif(mc.get('cccc')[0]==uname and mc.get('cccc')[1]==passwd):
-        print('user: %s login!!' % uname)
-        sock.sendall(b'success')
+        print("======================")
+        print('user: %s login!! sock number is :' % (uname,sock.fileno()))
+        print("======================")
+        loginmes = "login success"
+        sock.sendall(loginmes.encode())
         userinfo = mc.get('cccc')
         userinfo[2] = "online"
         userinfo[4] = sock.fileno()
@@ -96,8 +108,6 @@ def v_response(message,sock):
 #the message request
 def m_response(message,sock):
     print (message)
-    global socklist
-    print (socklist)
     message = message.encode()
     sock.sendall(message)
     if not message:
@@ -105,7 +115,7 @@ def m_response(message,sock):
 
 def friendlist_response(message,sock):
     mc = memcache.Client(['127.0.0.1:11211'])
-    uname = message.split(":")[0]
+    uname = message.split(";")[0]
     if (uname=="aaaa"):
         friendlist = mc.get('aaaa')[3]
         for val in friendlist:
@@ -125,18 +135,17 @@ def friendlist_response(message,sock):
 
 def friendadd_response(message,sock):
     mc = memcache.Client(['127.0.0.1:11211'])
-    uname = message.split(":")[0]
-    addfd = message.split(":")[1]
+    uname = message.split(";")[0]
+    addfd = message.split(";")[1]
     addfd = addfd.split(" ")[1]
     if (uname=="aaaa"):
-        #
         userinfo = mc.get('aaaa')
         friendlist = userinfo[3]
         friendlist.append(addfd)
         userinfo[3] = friendlist
         mc.set('aaaa',userinfo)
     elif (uname=="cccc"):
-        userinfo = mc.get('ccc')
+        userinfo = mc.get('cccc')
         friendlist = userinfo[3]
         friendlist.append(addfd)
         userinfo[3] = friendlist
@@ -144,8 +153,8 @@ def friendadd_response(message,sock):
 
 def frienddel_response(message,sock):
     mc = memcache.Client(['127.0.0.1:11211'])
-    uname = message.split(":")[0]
-    delfd = message.split(":")[1]
+    uname = message.split(";")[0]
+    delfd = message.split(";")[1]
     delfd = delfd.split(" ")[1]
     if (uname=="aaaa"):
         userinfo = mc.get('aaaa')
@@ -162,7 +171,7 @@ def frienddel_response(message,sock):
 
 def close_response(message,sock):
     mc = memcache.Client(['127.0.0.1:11211'])
-    uname = message.split(":")[0]
+    uname = message.split(";")[0]
     if (mc.get('aaaa')[0] == uname ):
         userinfo = mc.get('aaaa')
         userinfo[2] = "offline"
@@ -175,14 +184,76 @@ def close_response(message,sock):
         mc.set('cccc',userinfo)
     byem = "bye"
     sock.sendall(byem.encode())
+    if not message:
+        raise EOFError('socket closed')
 
 def sendto_other(message,sock):
     global socklist
     mc = memcache.Client(['127.0.0.1:11211'])
-    uname = message.split(":")[0]
-    recname = message.split(":")[1]
-    mess = message.split(":")[2]
+    uname = message.split(";")[0]
+    recname = message.split(";")[1]
+    mess = message.split(";")[2]
+    onoff = 0
+    for key in socklist:
+        if (mc.get(recname)[4]==key):
+            sendsock = socklist[key]
+            allmess = uname + ";" + mess + ";" + "bd785c92b41f71e7c49b" #tell client it is send message
+            sendsock.sendall(allmess.encode())
+            onoff = 1
+            break
+
+    if(onoff == 0):
+        failmess = recname + " is not online."
+        sock.sendall(failmess.encode())
+
+def talkto_request(message,sock):
+    global socklist
+    global talkcount
+    global talklist
+    mc = memcache.Client(['127.0.0.1:11211'])
+    uname = message.split(";")[0]
+    recname = message.split(";")[1]
+    mess = uname + " want to talk with you."
+    onoff = 0
     for key in socklist:
         if (mc.get(recname)[4]==key):
             sendsock = socklist[key]
             sendsock.sendall(mess.encode())
+            talklist.setdefault(uname ,recname)
+            onoff = 1
+            talkcount += 1
+            print (talkcount)
+            print ("==============")
+            print (talklist)
+            break
+
+    if(onoff == 0):
+        failmess = recname + " is not online."
+        sock.sendall(failmess.encode())
+
+def talkto_start(message,sock):
+    global socklist
+    global talklist
+    global talkcount
+    mc = memcache.Client(['127.0.0.1:11211'])
+    uname = message.split(";")[0]
+    mess = message.split(";")[1]
+    onoff = 0
+    
+    for user in talklist:  #ex {'aaaa':'cccc','cccc':'aaaa'}
+        if(uname == user):
+            recname = talklist[user]
+            for key in socklist: #ex {'aaaa':sock,'cccc',sock}
+                if (mc.get(recname)[4]==key):
+                    sendsock = socklist[key]
+                    if (mess == "exittalk"):
+                          talkcount = 0
+
+                    allmess = uname + ";" + mess + ";" + "73556db3b27ba48e180a" #tell client it is talk message
+                    sendsock.sendall(allmess.encode())
+                    onoff = 1
+                    break
+
+    if(onoff == 0):
+        failmess = recname + " is not online."
+        sock.sendall(failmess.encode())
