@@ -65,6 +65,8 @@ def handle_request(sock):
             sendto_other(message,sock)
         elif (message.endswith("73556db3b27ba48e180a")):
             talkto_request(message,sock)
+        elif (message.endswith("4e52fc424c0dd00271a0")):
+            offline_message(message,sock)
         else:
             m_response(message,sock)
 
@@ -81,19 +83,19 @@ def v_response(message,sock):
         print("======================")
         print('user: %s login!! sock number is :' % (uname,sock.fileno()))
         print("======================")
-        loginmes = "login success"
+        loginmes = "success"
         sock.sendall(loginmes.encode())
         userinfo = mc.get('aaaa')
         userinfo[2] = "online"
         userinfo[4] = sock.fileno()
         socklist.setdefault(sock.fileno(),sock)
         mc.set('aaaa',userinfo)
-        
+
     elif(mc.get('cccc')[0]==uname and mc.get('cccc')[1]==passwd):
         print("======================")
         print('user: %s login!! sock number is :' % (uname,sock.fileno()))
         print("======================")
-        loginmes = "login success"
+        loginmes = "success"
         sock.sendall(loginmes.encode())
         userinfo = mc.get('cccc')
         userinfo[2] = "online"
@@ -257,3 +259,6 @@ def talkto_start(message,sock):
     if(onoff == 0):
         failmess = recname + " is not online."
         sock.sendall(failmess.encode())
+
+def offline_message(message,sock):
+    print("hello")
