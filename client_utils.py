@@ -10,6 +10,7 @@ def parse_command_line(description):
     return address
 
 def v_request():
+    mc = memcache.Client(['127.0.0.1:11211'])
     uname = input('usernmae:')
     passwd = input('password:')
     token = "90187580da9e36b02149"
@@ -20,6 +21,13 @@ def v_request():
     reply = sock.recv(4096)
     print('The server said login ', reply.decode())
     if (reply.decode()=="success"):
+        alloffmess = mc.get(uname)[5]
+        if mc.get(uname)[5]:
+            for val in alloffmess:
+                uname = val.split(";")[0]
+                offmess = val.split(";")[1]
+                print ("user:(" + uname + ") leave a offline message to you:" + offmess) 
+
         return sock,uname
     else:
         print ("login fail")

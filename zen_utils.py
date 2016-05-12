@@ -92,9 +92,9 @@ def v_response(message,sock):
         mc.set('aaaa',userinfo)
 
     elif(mc.get('cccc')[0]==uname and mc.get('cccc')[1]==passwd):
-        print("======================")
-        print('user: %s login!! sock number is :' % (uname,sock.fileno()))
-        print("======================")
+        print("======================================")
+        print('user: %s login!! sock number is : %d' % (uname,sock.fileno()))
+        print("======================================")
         loginmes = "success"
         sock.sendall(loginmes.encode())
         userinfo = mc.get('cccc')
@@ -196,17 +196,23 @@ def sendto_other(message,sock):
     recname = message.split(";")[1]
     mess = message.split(";")[2]
     onoff = 0
+    allmess = uname + ";" + mess + ";" + "bd785c92b41f71e7c49b" #tell client it is send message
     for key in socklist:
         if (mc.get(recname)[4]==key):
             sendsock = socklist[key]
-            allmess = uname + ";" + mess + ";" + "bd785c92b41f71e7c49b" #tell client it is send message
             sendsock.sendall(allmess.encode())
             onoff = 1
             break
 
     if(onoff == 0):
-        failmess = recname + " is not online."
+        failmess = recname + " is not online. Server have leave your message to him/her."
         sock.sendall(failmess.encode())
+        userinfo = mc.get(recname)
+        offlinemess = userinfo[5]
+        print (uname + " leave a off line message:'" + mess + "' , to " + recname)
+        offlinemess.append(allmess)
+        userinfo[5] = offlinemess
+        mc.set(recname,userinfo)
 
 def talkto_request(message,sock):
     global socklist
