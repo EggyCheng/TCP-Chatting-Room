@@ -11,14 +11,16 @@ conn, addr = sock.accept()
 print("Connected by ", str(addr))
 
 while 1:
+
 	# listen for what client tells you to do
 	raw_data = conn.recv(1024)
 	data = repr(raw_data)[2:-1]
 	print(data)
+	print(raw_data)
 	# if 'o' is pressed on client, send the file
 	if (data == 'o'):
-		with open ('test.txt','rb') as f1:
-			conn.send(f1.read(1024))
+		with open ('index.png','rb') as f1:
+			conn.send(f1.read(5000))
 	
 	# if 'q' is pressed on client, quit
 	elif (data =='q'):

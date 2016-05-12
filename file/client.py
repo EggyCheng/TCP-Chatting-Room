@@ -11,8 +11,8 @@ while 1:
 	message = input("Your Message: ")
 	sock.send(bytes(message,'UTF-8'))
 	if (message == 'o'):
-		with open('client/test1.txt', 'wb+') as output:
-			rec = sock.recv(1024)
+		with open('client/test1.png', 'wb+') as output:
+			rec = sock.recv(5000)
 			output.write(rec)
 	
 	elif (message == 'q'):

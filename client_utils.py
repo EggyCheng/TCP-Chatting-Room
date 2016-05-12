@@ -1,4 +1,5 @@
 import argparse, socket, time, memcache
+from getpass import getpass
 
 def parse_command_line(description):
     """Parse command line and return a socket address."""
@@ -12,7 +13,7 @@ def parse_command_line(description):
 def v_request():
     mc = memcache.Client(['127.0.0.1:11211'])
     uname = input('usernmae:')
-    passwd = input('password:')
+    passwd = getpass()
     token = "90187580da9e36b02149"
     acc =  uname + ";" + passwd + ";" + token
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -21,12 +22,17 @@ def v_request():
     reply = sock.recv(4096)
     print('The server said login ', reply.decode())
     if (reply.decode()=="success"):
-        alloffmess = mc.get(uname)[5]
-        if mc.get(uname)[5]:
+        userinfo =  mc.get(uname)
+        alloffmess = userinfo[5]
+        if userinfo[5]:
             for val in alloffmess:
                 uname = val.split(";")[0]
                 offmess = val.split(";")[1]
                 print ("user:(" + uname + ") leave a offline message to you:" + offmess) 
+           
+            alloffmess[:] = [] 
+            userinfo[5] = alloffmess
+            mc.set('cccc',userinfo)
 
         return sock,uname
     else:
@@ -41,13 +47,21 @@ def accept_connections_forever(sock,uname):
             uname = message.split(";")[0]
             message = message.split(";")[1]
             print("The %s said : %s" % (uname,message))
-        elif(message.endswith("73556db3b27ba48e180a")):  #get send message from user
+        elif(message.endswith("73556db3b27ba48e180a")):  #get talk message from user
             uname = message.split(";")[0]
             message = message.split(";")[1]
             print("The %s said : %s" % (uname,message))
+        elif(message.endswith("578fdbe645445ab95fab")):  #get file data message from user
+            uname = message.split(";")[0]
+            filename = message.split(";")[1]
+            filedata = message.split(";")[2]
+            print(message)
+            with open('cccc_client_file/'+filename, 'wb+') as output:
+                 output.write(filedata.encode('utf-8'))
+
+            print("The %s send file : %s to you." % (uname,filename))
         else:
             print('The server said : ', message)
-            print()
             if(message=="bye"):
                 print ("bye~bye~")
                 break
@@ -58,6 +72,7 @@ def accept_connections_forever(sock,uname):
 
 def typecmd(sock,uname):
     while True:
+        transfile = 0
         text = input("Me:")
         if(text=="friendlist"):
             token = "e0df606e8d8371318a75"
@@ -83,13 +98,18 @@ def typecmd(sock,uname):
         elif(text=="exit"):
             token = "c17761a60bf2277982bd"
             text = uname + ";" +text + ";" + token
-        elif(text.startswith("offmess")):
-            token = "4e52fc424c0dd00271a0"
+        elif(text.startswith("filesend")):
+            token = "7f77e82579a5c857c310"
             send = text.split(":")[0]
             recname = send.split(" ")[1]
-            mess = text.split(":")[1]
-            text = uname + ";" + recname + ";" + mess + ";" + token
+            filename = text.split(":")[1]
+            #filename = 'aaaa_client_file/test.txt'
+            transfile = 1
+            with open ("aaaa_client_file/"+filename,'rb') as filedata:
+                 text = uname + ";" + recname + ";" + filename + ";" +str(filedata.read(5000)) + ";" + token      
+                 sock.send(text.encode())
         else:
             text = uname + ";" + text
-
-        sock.sendall(text.encode())
+        
+        if transfile == 0: 
+            sock.sendall(text.encode())

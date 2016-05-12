@@ -65,8 +65,8 @@ def handle_request(sock):
             sendto_other(message,sock)
         elif (message.endswith("73556db3b27ba48e180a")):
             talkto_request(message,sock)
-        elif (message.endswith("4e52fc424c0dd00271a0")):
-            offline_message(message,sock)
+        elif (message.endswith("7f77e82579a5c857c310")):
+            trans_file(message,sock)
         else:
             m_response(message,sock)
 
@@ -143,15 +143,33 @@ def friendadd_response(message,sock):
     if (uname=="aaaa"):
         userinfo = mc.get('aaaa')
         friendlist = userinfo[3]
-        friendlist.append(addfd)
-        userinfo[3] = friendlist
-        mc.set('aaaa',userinfo)
+        fdlive=0
+        for val in friendlist:
+            if (val == addfd):
+                errormess = "You haved added this friend. You can't do it again."
+                sock.sendall(errormess.encode())
+                fdlive = 1
+        if (fdlive == 0):
+            friendlist.append(addfd)
+            userinfo[3] = friendlist
+            mc.set('aaaa',userinfo)
+            successmess = "Add " + addfd + " success!!"
+            sock.sendall(successmess.encode())
     elif (uname=="cccc"):
         userinfo = mc.get('cccc')
         friendlist = userinfo[3]
-        friendlist.append(addfd)
-        userinfo[3] = friendlist
-        mc.set('cccc',userinfo)
+        fdlive=0
+        for val in friendlist:
+            if (val == addfd):
+                errormess = "You haved added this friend. You can't do it again."
+                sock.sendall(errormess.encode())
+                fdlive = 1
+        if (fdlive == 0):
+            friendlist.append(addfd)
+            userinfo[3] = friendlist
+            mc.set('cccc',userinfo)
+            successmess = "Add " + addfd + " success!!"
+            sock.sendall(successmess.encode())
 
 def frienddel_response(message,sock):
     mc = memcache.Client(['127.0.0.1:11211'])
@@ -266,5 +284,32 @@ def talkto_start(message,sock):
         failmess = recname + " is not online."
         sock.sendall(failmess.encode())
 
-def offline_message(message,sock):
-    print("hello")
+def trans_file(message,sock):
+    global socklist
+    mc = memcache.Client(['127.0.0.1:11211'])
+    uname = message.split(";")[0]
+    recname = message.split(";")[1]
+    filename = message.split(";")[2]
+    filedata = message.split(";")[3]
+    #
+    #txt = repr(filedata)[2:-1]
+    #with open('server_file/test.txt', 'wb+') as output:
+    #                    output.write(txt.encode('utf-8'))
+    #
+    onoff = 0
+    allmess = uname + ";" + filename + ";" + str(filedata) + ";"  + "578fdbe645445ab95fab" #tell client it is filedata  message
+    for key in socklist:
+        if (mc.get(recname)[4]==key):
+            sendsock = socklist[key]
+            sendsock.sendall(allmess.encode())
+            successmess = "Send file:" + filename +  " success!!" 
+            sock.sendall(successmess.encode())
+            onoff = 1
+            break
+
+    if(onoff == 0):
+        failmess = recname + " is not online. You can't send file to him/her."
+        sock.sendall(failmess.encode())
+        print ("transfile failed.")
+
+
