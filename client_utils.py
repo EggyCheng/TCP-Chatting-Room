@@ -55,11 +55,22 @@ def accept_connections_forever(sock,uname):
             uname = message.split(";")[0]
             filename = message.split(";")[1]
             filedata = message.split(";")[2]
-            print(message)
-            with open('cccc_client_file/'+filename, 'wb+') as output:
-                 output.write(filedata.encode('utf-8'))
-
-            print("The %s send file : %s to you." % (uname,filename))
+            if (uname == "aaaa"):
+                with open('cccc_client_file/'+filename, 'wb+') as output:
+                     output.write(filedata.encode('utf-8'))
+                print("The %s send file : %s to you." % (uname,filename))
+            elif (uname == "cccc"):
+                with open('aaaa_client_file/'+filename, 'wb+') as output:
+                     output.write(filedata.encode('utf-8'))
+                print("The %s send file : %s to you." % (uname,filename))
+        elif(message.endswith("7f77e82579a5c857c310")):  #get file data message confirm from user
+            mc = memcache.Client(['127.0.0.1:11211'])
+            recname = message.split(";")[2]
+            userinfo = mc.get(recname)
+            userinfo[6] = 1
+            mc.set(recname,userinfo)
+            message = message.split(";")[0]
+            print('The server said : ', message)
         else:
             print('The server said : ', message)
             if(message=="bye"):
@@ -72,6 +83,7 @@ def accept_connections_forever(sock,uname):
 
 def typecmd(sock,uname):
     while True:
+        mc = memcache.Client(['127.0.0.1:11211'])
         transfile = 0
         text = input("Me:")
         if(text=="friendlist"):
@@ -103,11 +115,18 @@ def typecmd(sock,uname):
             send = text.split(":")[0]
             recname = send.split(" ")[1]
             filename = text.split(":")[1]
-            #filename = 'aaaa_client_file/test.txt'
             transfile = 1
-            with open ("aaaa_client_file/"+filename,'rb') as filedata:
-                 text = uname + ";" + recname + ";" + filename + ";" +str(filedata.read(5000)) + ";" + token      
-                 sock.send(text.encode())
+            if (uname == "aaaa"):
+                with open ("aaaa_client_file/"+filename,'rb') as filedata:
+                     text = uname + ";" + recname + ";" + filename + ";" +str(filedata.read(5000)) + ";" + token      
+                     sock.send(text.encode())
+            elif (uname == "cccc"):
+                with open ("cccc_client_file/"+filename,'rb') as filedata:
+                     text = uname + ";" + recname + ";" + filename + ";" +str(filedata.read(5000)) + ";" + token      
+                     sock.send(text.encode())
+        elif(mc.get('uname')[6]==1):
+            print("test")
+
         else:
             text = uname + ";" + text
         

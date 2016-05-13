@@ -66,7 +66,7 @@ def handle_request(sock):
         elif (message.endswith("73556db3b27ba48e180a")):
             talkto_request(message,sock)
         elif (message.endswith("7f77e82579a5c857c310")):
-            trans_file(message,sock)
+            trans_file_toserver(message,sock)
         else:
             m_response(message,sock)
 
@@ -79,7 +79,7 @@ def v_response(message,sock):
     passwd = message.split(";")[1]
     print("username:%s" % uname)
     print("password:%s" % passwd)
-    if(mc.get('aaaa')[0]==uname and mc.get('aaaa')[1]==passwd):
+    if(mc.get('aaaa')[0]==uname and mc.get('aaaa')[1]==passwd and mc.get('aaaa')[2]=="offline"):
         print("======================================")
         print('user: %s login!! sock number is : %d' % (uname,sock.fileno()))
         print("======================================")
@@ -91,7 +91,7 @@ def v_response(message,sock):
         socklist.setdefault(sock.fileno(),sock)
         mc.set('aaaa',userinfo)
 
-    elif(mc.get('cccc')[0]==uname and mc.get('cccc')[1]==passwd):
+    elif(mc.get('cccc')[0]==uname and mc.get('cccc')[1]==passwd and mc.get('cccc')[2]=="offline"):
         print("======================================")
         print('user: %s login!! sock number is : %d' % (uname,sock.fileno()))
         print("======================================")
@@ -111,7 +111,7 @@ def v_response(message,sock):
 def m_response(message,sock):
     print (message)
     message = message.encode()
-    sock.sendall(message)
+    #sock.sendall(message)
     if not message:
         raise EOFError('socket closed')
 
@@ -284,32 +284,41 @@ def talkto_start(message,sock):
         failmess = recname + " is not online."
         sock.sendall(failmess.encode())
 
-def trans_file(message,sock):
+def trans_file_toserver(message,sock):
     global socklist
     mc = memcache.Client(['127.0.0.1:11211'])
     uname = message.split(";")[0]
     recname = message.split(";")[1]
     filename = message.split(";")[2]
     filedata = message.split(";")[3]
-    #
+    # save file in server_file
     #txt = repr(filedata)[2:-1]
     #with open('server_file/test.txt', 'wb+') as output:
     #                    output.write(txt.encode('utf-8'))
     #
-    onoff = 0
-    allmess = uname + ";" + filename + ";" + str(filedata) + ";"  + "578fdbe645445ab95fab" #tell client it is filedata  message
-    for key in socklist:
-        if (mc.get(recname)[4]==key):
-            sendsock = socklist[key]
-            sendsock.sendall(allmess.encode())
-            successmess = "Send file:" + filename +  " success!!" 
-            sock.sendall(successmess.encode())
-            onoff = 1
-            break
+    if (message.split(";")[4] == "7f77e82579a5c857c310"):
+        for key in socklist:
+            if (mc.get(recname)[4]==key):
+                sendsock = socklist[key]
+                confrimmess = "Do you want to get the file from " +  uname + "(y/n) ?" + ";440f7a4f63c49279efb8;" + recname
+                sendsock.sendall(confrimmess.encode())
+                ackmess = "waiting for " +  recname
+                sock.sendall(ackmess.encode())
+                break
 
-    if(onoff == 0):
-        failmess = recname + " is not online. You can't send file to him/her."
-        sock.sendall(failmess.encode())
-        print ("transfile failed.")
+    # onoff = 0
+    # allmess = uname + ";" + filename + ";" + str(filedata) + ";"  + "578fdbe645445ab95fab" #tell client it is filedata  message
+    # for key in socklist:
+    #     if (mc.get(recname)[4]==key):
+    #         sendsock = socklist[key]
+    #         sendsock.sendall(allmess.encode())
+    #         successmess = "Send file:" + filename +  " success!!" 
+    #         sock.sendall(successmess.encode())
+    #         onoff = 1
+    #         break
 
+    # if(onoff == 0):
+    #     failmess = recname + " is not online. You can't send file to him/her."
+    #     sock.sendall(failmess.encode())
+    #     print ("transfile failed.")
 
