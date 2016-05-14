@@ -1,8 +1,9 @@
-import argparse, socket, time, memcache
+import argparse, socket, time, memcache, json
 
 socklist = dict()
 talkcount = 0
 talklist = dict()
+fileinfo = list()
 #0
 def parse_command_line(description):
     """Parse command line and return a socket address."""
@@ -47,7 +48,7 @@ def handle_request(sock):
     """Receive a single client request on `sock` and send the answer."""
     talklist = list()
     message = sock.recv(4096)
-    message = message.decode()
+    message = message.decode('utf-8')
     if (talkcount == 2):  # start talk statement
         talkto_start(message,sock)
     else:
@@ -67,6 +68,10 @@ def handle_request(sock):
             talkto_request(message,sock)
         elif (message.endswith("7f77e82579a5c857c310")):
             trans_file_toserver(message,sock)
+        elif (message.endswith("f6990c57956cba967c3b")):
+            trans_file_toclient(message,sock)
+        elif (message.endswith("da724d3ba86ce29d7b82")):
+            trans_file_denied(message,sock)
         else:
             m_response(message,sock)
 
@@ -274,6 +279,10 @@ def talkto_start(message,sock):
                     sendsock = socklist[key]
                     if (mess == "exittalk"):
                           talkcount = 0
+                          talkstopmess = "The talk in stop."
+                          sendsock.sendall(talkstopmess.encode())
+                          sock.sendall(talkstopmess.encode())
+
 
                     allmess = uname + ";" + mess + ";" + "73556db3b27ba48e180a" #tell client it is talk message
                     sendsock.sendall(allmess.encode())
@@ -286,39 +295,65 @@ def talkto_start(message,sock):
 
 def trans_file_toserver(message,sock):
     global socklist
+    global fileinfo
     mc = memcache.Client(['127.0.0.1:11211'])
-    uname = message.split(";")[0]
-    recname = message.split(";")[1]
-    filename = message.split(";")[2]
-    filedata = message.split(";")[3]
-    # save file in server_file
-    #txt = repr(filedata)[2:-1]
-    #with open('server_file/test.txt', 'wb+') as output:
-    #                    output.write(txt.encode('utf-8'))
-    #
-    if (message.split(";")[4] == "7f77e82579a5c857c310"):
-        for key in socklist:
-            if (mc.get(recname)[4]==key):
-                sendsock = socklist[key]
-                confrimmess = "Do you want to get the file from " +  uname + "(y/n) ?" + ";440f7a4f63c49279efb8;" + recname
-                sendsock.sendall(confrimmess.encode())
-                ackmess = "waiting for " +  recname
-                sock.sendall(ackmess.encode())
-                break
+    message = message.split("7f77e82579a5c857c310")[0]
+    message = json.loads(message)
+    uname = message['uname']
+    recname = message['recname']
+    filename = message['filename']
+    filedata = message['filedata']
+    # #save file in server_file
+    filedata = repr(filedata)[2:-1]
+    with open('server_file/'+filename, 'wb+') as output:
+                       output.write(filedata.encode('utf-8'))
+    for key in socklist:
+        if (mc.get(recname)[4]==key):
+            sendsock = socklist[key]
+            confrimmess = "Do you want to get the file from " +  uname + "(y/n) ?;" + recname + ";440f7a4f63c49279efb8"
+            sendsock.sendall(confrimmess.encode())
+            ackmess = "waiting for " +  recname
+            sock.sendall(ackmess.encode())
+            # fileinfo[0] = uname
+            # fileinfo[1] = sock
+            # fileinfo[2] = recname
+            # fileinfo[3] = sendsock
+            # fileinfo[4] = filename
+            # fileinfo[5] = filedata
+            fileinfo.append(uname)
+            fileinfo.append(sock)
+            fileinfo.append(recname)
+            fileinfo.append(sendsock)
+            fileinfo.append(filename)
+            fileinfo.append(filedata)
+            break
 
-    # onoff = 0
-    # allmess = uname + ";" + filename + ";" + str(filedata) + ";"  + "578fdbe645445ab95fab" #tell client it is filedata  message
-    # for key in socklist:
-    #     if (mc.get(recname)[4]==key):
-    #         sendsock = socklist[key]
-    #         sendsock.sendall(allmess.encode())
-    #         successmess = "Send file:" + filename +  " success!!" 
-    #         sock.sendall(successmess.encode())
-    #         onoff = 1
-    #         break
 
-    # if(onoff == 0):
-    #     failmess = recname + " is not online. You can't send file to him/her."
-    #     sock.sendall(failmess.encode())
-    #     print ("transfile failed.")
+def trans_file_toclient(message,sock):
+    global fileinfo
+    uname = fileinfo[0]
+    #sock = fileinfo[1]
+    recname = fileinfo[2]
+    #sendsock = fileinfo[3]
+    filename = fileinfo[4]
+    filedata = fileinfo[5]
+    sendmess = dict()
+    sendmess.setdefault('filename',filename)
+    sendmess.setdefault('filedata',filedata)
+    sendmess = json.dumps(sendmess) + "f6990c57956cba967c3b"
+    sock.sendall(sendmess.encode('utf-8'))
+    fileinfo.clear()
+    
+
+def trans_file_denied(message,sock):
+    global fileinfo
+    uname = fileinfo[0]
+    sock = fileinfo[1]
+    recname = fileinfo[2]
+    sendsock = fileinfo[3]
+    socksendmess = "File transmit denied by " + recname + "."
+    senddsocksendmess = "You have denied the file from " + uname + "."
+    sendsock.sendall(senddsocksendmess.encode('utf-8'))
+    sock.sendall(socksendmess.encode('utf-8'))
+    fileinfo.clear()
 
