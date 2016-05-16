@@ -77,6 +77,8 @@ def accept_connections_forever(sock,uname):
                 print ("bye~bye~")
                 break
                 sock.close()
+            else:
+                print(message)
             
 
 def typecmd(sock,uname):
@@ -87,6 +89,9 @@ def typecmd(sock,uname):
     print ("#send <user name> : <message> [to send other user a message]")
     print ("#talk <user name> [to entry a talk mode with other user (exittalk to stop talking)]")
     print ("#filesend <user name> : <filename> [to send file to other user]")
+    print ("*#chpasswd <password> [to change passwordd]")
+    print ("*log.txt is the login log file")
+    print ("*talk_history.txt is the talk history file")
     print ("#exit [to logout]")
     print ("========================================================")
     while True:
@@ -117,6 +122,9 @@ def typecmd(sock,uname):
             text = uname + ";" + recname + ";" + token
         elif(text=="exit"):
             token = "c17761a60bf2277982bd"
+            text = uname + ";" +text + ";" + token
+        elif(text.startswith("chpasswd")):
+            token = "4b490bbe85a8fa282d2c"
             text = uname + ";" +text + ";" + token
         elif(text.startswith("filesend")):
             token = "7f77e82579a5c857c310"

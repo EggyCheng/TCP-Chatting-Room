@@ -1,4 +1,4 @@
-import argparse, socket, time, memcache, json
+import argparse, socket, time, memcache, json, time
 
 socklist = dict()
 talkcount = 0
@@ -57,7 +57,7 @@ def handle_request(sock):
         elif (message.endswith("e0df606e8d8371318a75")):
             friendlist_response(message,sock)
         elif (message.endswith("c17761a60bf2277982bd")):
-            close_response(message,sock)
+            logout_system(message,sock)
         elif (message.endswith("9b5ee10b35dc972542e8")):
             friendadd_response(message,sock)
         elif (message.endswith("7dd14502ccbdc835ed86")):
@@ -72,6 +72,8 @@ def handle_request(sock):
             trans_file_toclient(message,sock)
         elif (message.endswith("da724d3ba86ce29d7b82")):
             trans_file_denied(message,sock)
+        elif (message.endswith("4b490bbe85a8fa282d2c")):
+            change_password(message,sock)
         else:
             m_response(message,sock)
 
@@ -95,6 +97,11 @@ def v_response(message,sock):
         userinfo[4] = sock.fileno()
         socklist.setdefault(sock.fileno(),sock)
         mc.set('aaaa',userinfo)
+        #write login record in log.txt
+        f = open("log.txt","a+")
+        ticks = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()) 
+        f.write("["+ticks+"]"+uname + " login success.")
+        f.write("\n")
 
     elif(mc.get('cccc')[0]==uname and mc.get('cccc')[1]==passwd and mc.get('cccc')[2]=="offline"):
         print("======================================")
@@ -107,16 +114,27 @@ def v_response(message,sock):
         userinfo[4] = sock.fileno()
         socklist.setdefault(sock.fileno(),sock)
         mc.set('cccc',userinfo)
+        #write login record in log.txt
+        f = open("log.txt","a+")
+        ticks = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()) 
+        f.write("["+ticks+"]"+uname + " login success.")
+        f.write("\n");
     else:
         print('identity fail.QAQQAQQAQQAQQAQQAQQAQQAQQAQQAQQAQ')
         sock.sendall(b'fail')
         sock.close()
+        #write login record in log.txt
+        f = open("log.txt","a+")
+        ticks = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()) 
+        f.write("["+ticks+"]"+uname + " login fail.")
+        f.write("\n");
 
 #the message request
 def m_response(message,sock):
     print (message)
     message = message.encode()
-    #sock.sendall(message)
+    wrongcli = "You send a invalid command."
+    sock.sendall(wrongcli.encode())
     if not message:
         raise EOFError('socket closed')
 
@@ -194,7 +212,7 @@ def frienddel_response(message,sock):
         userinfo[3] = friendlist
         mc.set('cccc',userinfo)
 
-def close_response(message,sock):
+def logout_system(message,sock):
     mc = memcache.Client(['127.0.0.1:11211'])
     uname = message.split(";")[0]
     if (mc.get('aaaa')[0] == uname ):
@@ -253,9 +271,6 @@ def talkto_request(message,sock):
             talklist.setdefault(uname ,recname)
             onoff = 1
             talkcount += 1
-            print (talkcount)
-            print ("==============")
-            print (talklist)
             break
 
     if(onoff == 0):
@@ -285,6 +300,10 @@ def talkto_start(message,sock):
 
 
                     allmess = uname + ";" + mess + ";" + "73556db3b27ba48e180a" #tell client it is talk message
+                    f = open("talk_history.txt","a+")
+                    ticks = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()) 
+                    f.write("["+ticks+"]"+uname + "->" + recname + ":" + mess)
+                    f.write("\n")
                     sendsock.sendall(allmess.encode())
                     onoff = 1
                     break
@@ -332,7 +351,7 @@ def trans_file_toserver(message,sock):
 def trans_file_toclient(message,sock):
     global fileinfo
     uname = fileinfo[0]
-    #sock = fileinfo[1]
+    osock = fileinfo[1]
     recname = fileinfo[2]
     #sendsock = fileinfo[3]
     filename = fileinfo[4]
@@ -342,6 +361,8 @@ def trans_file_toclient(message,sock):
     sendmess.setdefault('filedata',filedata)
     sendmess = json.dumps(sendmess) + "f6990c57956cba967c3b"
     sock.sendall(sendmess.encode('utf-8'))
+    successmess = "You transmited the " + filename + " to " + recname + " successfully."
+    osock.sendall(successmess.encode())
     fileinfo.clear()
     
 
@@ -357,3 +378,13 @@ def trans_file_denied(message,sock):
     sock.sendall(socksendmess.encode('utf-8'))
     fileinfo.clear()
 
+def change_password(message,sock):
+    mc = memcache.Client(['127.0.0.1:11211'])
+    uname = message.split(";")[0]
+    message = message.split(";")[1]
+    passwd = message.split(" ")[1]
+    userinfo = mc.get(uname)
+    userinfo[1] = passwd
+    mc.set(uname,userinfo)
+    successmess = "You changed your password successfully."
+    sock.sendall(successmess.encode())
