@@ -41,7 +41,7 @@ talk [to entry a talk mode with other user (exittalk to stop talking)]
 
 filesend : [to send file to other user]
 
-*#chpasswd <password> [to change passwordd]
+*chpasswd <password> [to change passwordd]
 
 *log.txt is the login log file
 
